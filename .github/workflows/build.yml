@@ -113,14 +113,3 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: bin/
-
-      - name: Move to folder ok
-        run: |
-          mkdir upload
-          for i in bin/*;do
-            for ii in i/*;do
-              cp -rf ii upload
-            done
-          done
-          rm -rf bin/*
-          ls -R
