@@ -4,7 +4,7 @@ on:
     inputs:
       version:
         description: "Tag version to release"
-        required: true
+        required: false
   push:
     paths-ignore:
       - "docs/**"
