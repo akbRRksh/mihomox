@@ -1,59 +1,110 @@
-name: MiHomo-Alpha
+name: MiHomo-Test
 on:
-  - workflow_dispatch
+  workflow_dispatch:
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        jobs:
+          - { goos: linux, goarch: arm64, output: arm64 }
+          - { goos: linux, goarch: arm, goarm: '7', output: armv7 }
+          - { goos: android, goarch: arm, ndk: armv7a-linux-androideabi34, output: armv7 }
+          - { goos: android, goarch: arm64, ndk: aarch64-linux-android34, output: arm64-v8 }
+
     steps:
-      - name: Checkout
+      - name: Checkout Source Code
         uses: actions/checkout@v4
         with:
           repository: MetaCubeX/mihomo
-          ref: Alpha
-      - name: Get Latest tag
+          ref: Meta
+
+      - name: Get Latest Tag
         id: latest_tag
         uses: pozetroninc/github-action-get-latest-release@master
         with:
           repository: MetaCubeX/mihomo
           excludes: prerelease, draft
-      - name: Versioning
+
+      - name: Set up Go
+        if: ${{ matrix.jobs.goversion == '' && matrix.jobs.abi != '1' }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Set up Go
+        if: ${{ matrix.jobs.goversion != '' && matrix.jobs.abi != '1' }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.jobs.goversion }}
+
+      - name: Set Time and Build Variables
         run: |
-          ###
           sudo timedatectl set-timezone "Asia/Jakarta"
           echo "NAME=mihomo" >> $GITHUB_ENV
           BUILDTIME=$(date)
           echo "BUILDTIME=$BUILDTIME" >> $GITHUB_ENV
           HASH_COMMIT=$(git rev-parse --short HEAD)
-          echo "URL_COMMIT=https://www.github.com/metacubex/mihomo/commit/$HASH_COMMIT" >> $GITHUB_ENV
-          COMMIT=$(git log --oneline -n 5 --no-decorate | sed 's/^[0-9a-f]* //' | sed 's/^/— /')
-          echo "COMMIT=$COMMIT" >> $GITHUB_ENV
-          VERSION=${{ steps.latest_tag.outputs.release }}-${HASH_COMMIT}
+          echo "HASH_COMMIT=$HASH_COMMIT" >> $GITHUB_ENV
+          echo "URL_COMMIT=https://github.com/metacubex/mihomo/commit/$HASH_COMMIT" >> $GITHUB_ENV
+          VERSION="${{ steps.latest_tag.outputs.release }}-$HASH_COMMIT"
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "TAGS=with_gvisor,with_low_memory" >> $GITHUB_ENV
-          echo "LDFLAGS=-X 'github.com/metacubex/mihomo/constant.Version=${VERSION}' -X 'github.com/metacubex/mihomo/constant.BuildTime=${BUILDTIME}' -w -s -buildid=" >> $GITHUB_ENV
-      - name: Setup Go
-        uses: actions/setup-go@v4
+          BUILDTAG="-extldflags --static"
+          echo "GOTOOLCHAIN=local" >> $GITHUB_ENV
+          echo "LDFLAGS=$BUILDTAG -X 'github.com/metacubex/mihomo/constant.Version=$VERSION' -X 'github.com/metacubex/mihomo/constant.BuildTime=$BUILDTIME' -w -s -buildid=" >> $GITHUB_ENV
+
+      # Caching NDK
+      - name: Cache NDK
+        uses: actions/cache@v3
         with:
-          go-version: stable
-      - name: Build
+          path: ${{ runner.tool_cache }}/android-ndk
+          key: android-ndk-${{ matrix.jobs.goos }}-${{ matrix.jobs.ndk }}
+          restore-keys: |
+            android-ndk-${{ matrix.jobs.goos }}-
+
+      - name: Setup NDK
+        if: ${{ matrix.jobs.goos == 'android' }}
+        uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r28-beta1
+
+      - name: Set NDK path
+        if: ${{ matrix.jobs.goos == 'android' }}
         run: |
-          ###
-          GOARCH=arm64 GOOS=android go build -tags ${TAGS} -trimpath -ldflags "${LDFLAGS}" -o ./${NAME}
-      #- name: Install UPX
-        #uses: crazy-max/ghaction-upx@v2
-        #with:
-          #install-only: true
-      #- name: Run UPX
-        #run: upx --best ./${NAME}
-      - name: Archive
-        id: archive
+          echo "CC=${{steps.setup-ndk.outputs.ndk-path}}/toolchains/llvm/prebuilt/linux-x86_64/bin/${{matrix.jobs.ndk}}-clang" >> $GITHUB_ENV
+          echo "CGO_ENABLED=1" >> $GITHUB_ENV
+          echo "BUILDTAG=" >> $GITHUB_ENV
+          echo "LDFLAGS=$BUILDTAG -X 'github.com/metacubex/mihomo/constant.Version=$VERSION' -X 'github.com/metacubex/mihomo/constant.BuildTime=$BUILDTIME' -w -s -buildid=" >> $GITHUB_ENV
+
+      - name: Debug Variables
         run: |
-          ###
-          GZ="${NAME}-android-arm64-${VERSION}.tgz"
-          tar -caf $GZ ./${NAME}
-          echo "gz=$GZ" >> $GITHUB_OUTPUT
-          SHA=$(cat $GZ 2>/dev/null | sha256sum | cut -d ' ' -f1)
-          echo "sha=$SHA" >> $GITHUB_OUTPUT
+          echo "VERSION: ${{ env.VERSION }}"
+          echo "TAGS: ${{ env.TAGS }}"
+          echo "LDFLAGS: ${{ env.LDFLAGS }}"
+
+      - name: Build Application
+        env:
+          GOOS: ${{ matrix.jobs.goos }}
+          GOARCH: ${{ matrix.jobs.goarch }}
+          GOARM: ${{ matrix.jobs.goarm }}
+          GOOUTPUT: ${{ matrix.jobs.output }}
+          VERSION: ${{ env.VERSION }}
+          TAGS: ${{ env.TAGS }}
+          LDFLAGS: ${{ env.LDFLAGS }}
+        run: |
+          echo "Building for $GOOS/$GOARCH..."
+          go build -tags "$TAGS" -trimpath -ldflags "$LDFLAGS"
+          gzip -c mihomo > mihomo-${GOOS}-${GOOUTPUT}-${VERSION}.gz
+          rm mihomo
+
+      - name: Save Version
+        run: |
+          echo "${{ env.VERSION }}" > version.txt
+          ls -R
+
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -108,3 +159,4 @@ jobs:
             oke/*
           prerelease: false
           generate_release_notes: true
+          
