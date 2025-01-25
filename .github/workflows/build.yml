@@ -49,6 +49,7 @@ jobs:
           echo "HASH_COMMIT=$HASH_COMMIT" >> $GITHUB_ENV
           echo "URL_COMMIT=https://github.com/metacubex/mihomo/commit/$HASH_COMMIT" >> $GITHUB_ENV
           VERSION="${{ steps.latest_tag.outputs.release }}-$HASH_COMMIT"
+          echo "VERSION=$HASH_COMMIT" >> $GITHUB_ENV
           echo "TAGS=with_gvisor,with_low_memory" >> $GITHUB_ENV
           echo "GOTOOLCHAIN=local" >> $GITHUB_ENV
           echo "LDFLAGS=$BUILDTAG -X 'github.com/metacubex/mihomo/constant.Version=$VERSION' -X 'github.com/metacubex/mihomo/constant.BuildTime=$BUILDTIME' -w -s -buildid=" >> $GITHUB_ENV
