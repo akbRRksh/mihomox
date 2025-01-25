@@ -17,15 +17,16 @@ jobs:
       - name: Checkout Source Code
         uses: actions/checkout@v4
         with:
-          repository: MetaCubeX/mihomo
-          ref: Alpha
+          ref: ${{ github.ref_name }}
     
-      - name: Get Latest Tag
+      - name: Get Latest Tag from Current Branch
         id: latest_tag
-        uses: pozetroninc/github-action-get-latest-release@master
-        with:
-          repository: MetaCubeX/mihomo
-          excludes: prerelease, draft
+        run: |
+          TAG=$(git tag --points-at HEAD | sort -V | tail -n 1)
+          if [ -z "$TAG" ]; then
+            TAG="no-tag"
+          fi
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
     
       - name: Set up Go
         if: ${{ matrix.jobs.goversion == '' && matrix.jobs.abi != '1' }}
@@ -46,19 +47,25 @@ jobs:
           BUILDTIME=$(date)
           echo "BUILDTIME=$BUILDTIME" >> $GITHUB_ENV
           HASH_COMMIT=$(git rev-parse --short HEAD)
-          echo "COMMIT=$COMMIT" >> $GITHUB_ENV
-          echo "URL_COMMIT=https://github.com/metacubex/mihomo/commit/$HASH_COMMIT" >> $GITHUB_ENV
+          echo "COMMIT=$HASH_COMMIT" >> $GITHUB_ENV
+          echo "URL_COMMIT=https://github.com/${{ github.repository }}/commit/$HASH_COMMIT" >> $GITHUB_ENV
           
-          # Ambil nama branch saat ini
-          BRANCH_NAME=$(echo "${GITHUB_REF_NAME}" | sed 's/\//-/g')
+          # Mendapatkan nama branch
+          BRANCH_NAME=${GITHUB_REF_NAME}
           echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
           
-          VERSION="${{ steps.latest_tag.outputs.release }}-$HASH_COMMIT-$BRANCH_NAME"
+          # Membuat versi berdasarkan tag, commit, dan branch
+          if [ "${{ steps.latest_tag.outputs.tag }}" != "no-tag" ]; then
+            VERSION="${{ steps.latest_tag.outputs.tag }}-$HASH_COMMIT-$BRANCH_NAME"
+          else
+            VERSION="v0.0.0-$HASH_COMMIT-$BRANCH_NAME"
+          fi
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           
           echo "TAGS=with_gvisor,with_low_memory" >> $GITHUB_ENV
           echo "GOTOOLCHAIN=local" >> $GITHUB_ENV
           echo "LDFLAGS=$BUILDTAG -X 'github.com/metacubex/mihomo/constant.Version=$VERSION' -X 'github.com/metacubex/mihomo/constant.BuildTime=$BUILDTIME' -w -s -buildid=" >> $GITHUB_ENV
+
 
 
       # Caching NDK
