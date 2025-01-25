@@ -15,7 +15,7 @@ jobs:
         uses: pozetroninc/github-action-get-latest-release@master
         with:
           repository: MetaCubeX/mihomo
-          excludes: prerelease, draft
+          includes: alpha
       - name: Versioning
         run: |
           ###
@@ -98,12 +98,3 @@ jobs:
           ###
           echo "file=$file" >> $GITHUB_OUTPUT
           echo "[+] Done."
-      - name: SendTo Telegram
-        uses: appleboy/telegram-action@master
-        with:
-          to: ${{ secrets.TELEGRAM_TO }}
-          token: ${{ secrets.TELEGRAM_TOKEN }}
-          disable_web_page_preview: true
-          format: markdown
-          message_file: ${{ steps.write.outputs.file }}
-          document: ${{ steps.archive.outputs.gz }}
