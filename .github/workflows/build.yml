@@ -1,28 +1,6 @@
-name: Build
+name: MiHomo-Alpha
 on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: "Tag version to release"
-        required: true
-  push:
-    paths-ignore:
-      - "docs/**"
-      - "README.md"
-      - ".github/ISSUE_TEMPLATE/**"
-    branches:
-      - Alpha
-    tags:
-      - "v*"
-  pull_request_target:
-    branches:
-      - Alpha
-concurrency:
-  group: "${{ github.workflow }}-${{ github.ref }}"
-  cancel-in-progress: true
-  
-env:
-  REGISTRY: docker.io
+  - workflow_dispatch
 jobs:
   build:
     runs-on: ubuntu-latest
