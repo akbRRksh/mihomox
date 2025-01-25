@@ -1,10 +1,6 @@
 name: Build
 on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: "Tag version to release"
-        required: false
+  - workflow_dispatch
   push:
     paths-ignore:
       - "docs/**"
