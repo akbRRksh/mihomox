@@ -19,26 +19,26 @@ jobs:
         with:
           repository: MetaCubeX/mihomo
           ref: Alpha
-
+    
       - name: Get Latest Tag
         id: latest_tag
         uses: pozetroninc/github-action-get-latest-release@master
         with:
           repository: MetaCubeX/mihomo
           excludes: prerelease, draft
-
+    
       - name: Set up Go
         if: ${{ matrix.jobs.goversion == '' && matrix.jobs.abi != '1' }}
         uses: actions/setup-go@v5
         with:
           go-version: '1.23'
-
+    
       - name: Set up Go
         if: ${{ matrix.jobs.goversion != '' && matrix.jobs.abi != '1' }}
         uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.jobs.goversion }}
-
+    
       - name: Set Time and Build Variables
         run: |
           sudo timedatectl set-timezone "Asia/Jakarta"
@@ -48,11 +48,18 @@ jobs:
           HASH_COMMIT=$(git rev-parse --short HEAD)
           echo "COMMIT=$COMMIT" >> $GITHUB_ENV
           echo "URL_COMMIT=https://github.com/metacubex/mihomo/commit/$HASH_COMMIT" >> $GITHUB_ENV
-          VERSION="${{ steps.latest_tag.outputs.release }}-$HASH_COMMIT"
+          
+          # Ambil nama branch saat ini
+          BRANCH_NAME=$(echo "${GITHUB_REF_NAME}" | sed 's/\//-/g')
+          echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
+          
+          VERSION="${{ steps.latest_tag.outputs.release }}-$HASH_COMMIT-$BRANCH_NAME"
           echo "VERSION=$VERSION" >> $GITHUB_ENV
+          
           echo "TAGS=with_gvisor,with_low_memory" >> $GITHUB_ENV
           echo "GOTOOLCHAIN=local" >> $GITHUB_ENV
           echo "LDFLAGS=$BUILDTAG -X 'github.com/metacubex/mihomo/constant.Version=$VERSION' -X 'github.com/metacubex/mihomo/constant.BuildTime=$BUILDTIME' -w -s -buildid=" >> $GITHUB_ENV
+
 
       # Caching NDK
       - name: Cache NDK
