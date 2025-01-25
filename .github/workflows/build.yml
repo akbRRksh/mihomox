@@ -409,11 +409,3 @@ jobs:
       - name: Display structure of downloaded files
         run: ls -R
         working-directory: bin
-  
-      - name: Upload Release
-        uses: softprops/action-gh-release@v2
-        if: ${{ success() }}
-        with:
-          tag_name: ${{ github.event.inputs.version }}
-          files: bin/*
-          body_path: release.md
