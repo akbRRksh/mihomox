@@ -25,6 +25,7 @@ jobs:
         uses: pozetroninc/github-action-get-latest-release@master
         with:
           repository: akbRRksh/mihomox
+          excludes: Prerelease-Alpha
 
       - name: Set up Go
         if: ${{ matrix.jobs.goversion == '' && matrix.jobs.abi != '1' }}
