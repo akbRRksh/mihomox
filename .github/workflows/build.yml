@@ -1,4 +1,4 @@
-name: MiHomo-Create
+name: MiHomo-Test
 on:
   workflow_dispatch:
 
@@ -17,15 +17,14 @@ jobs:
       - name: Checkout Source Code
         uses: actions/checkout@v4
         with:
-          repository: MetaCubeX/mihomo
+          repository: akbRRkshX/mihomox
           ref: Alpha
 
       - name: Get Latest Tag
         id: latest_tag
         uses: pozetroninc/github-action-get-latest-release@master
         with:
-          repository: MetaCubeX/mihomo
-          excludes: prerelease, draft
+          repository: akbRRksh/mihomox
 
       - name: Set up Go
         if: ${{ matrix.jobs.goversion == '' && matrix.jobs.abi != '1' }}
@@ -54,6 +53,15 @@ jobs:
           BUILDTAG="-extldflags --static"
           echo "GOTOOLCHAIN=local" >> $GITHUB_ENV
           echo "LDFLAGS=$BUILDTAG -X 'github.com/metacubex/mihomo/constant.Version=$VERSION' -X 'github.com/metacubex/mihomo/constant.BuildTime=$BUILDTIME' -w -s -buildid=" >> $GITHUB_ENV
+
+      # Caching NDK
+      - name: Cache NDK
+        uses: actions/cache@v3
+        with:
+          path: ${{ runner.tool_cache }}/android-ndk
+          key: android-ndk-${{ matrix.jobs.goos }}-${{ matrix.jobs.ndk }}
+          restore-keys: |
+            android-ndk-${{ matrix.jobs.goos }}-
 
       - name: Setup NDK
         if: ${{ matrix.jobs.goos == 'android' }}
@@ -88,13 +96,13 @@ jobs:
         run: |
           echo "Building for $GOOS/$GOARCH..."
           go build -tags "$TAGS" -trimpath -ldflags "$LDFLAGS"
-          cp mihomo mihomo-${GOOS}-${GOOUTPUT}
-          gzip -c mihomo-${GOOS}-${GOOUTPUT} > mihomo-${GOOS}-${GOOUTPUT}-${VERSION}.gz
-          rm mihomo-${GOOS}-${GOOUTPUT}
-          ls -a
+          gzip -c mihomo > mihomo-${GOOS}-${GOOUTPUT}-${VERSION}.gz
+          rm mihomo
 
       - name: Save Version
-        run: echo "${{ env.VERSION }}" > version.txt
+        run: |
+          echo "${{ env.VERSION }}" > version.txt
+          ls -R
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
@@ -103,9 +111,10 @@ jobs:
           path: |
             mihomo*.gz
             version.txt
-          if-no-file-found: warn
+          if-no-files-found: warn
 
   upload:
+    permissions: write-all
     runs-on: ubuntu-latest
     needs: build
     steps:
@@ -113,3 +122,40 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: bin/
+
+      - name: Move to folder
+        run: |
+          mkdir oke
+          for i in bin/*;do
+            for ii in $i/*;do
+              cp -rf $ii oke
+            done
+          done
+          rm -rf bin
+          ls -R oke
+
+      - name: Load VERSION
+        run: |
+          VERSION=$(cat oke/version.txt)
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          
+      - name: Tag Repo
+        uses: richardsimko/update-tag@v1
+        with:
+          tag_name: ${{env.VERSION }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            
+      - name: Display structure of downloaded files
+        run: ls -R
+  
+      - name: Upload Release
+        uses: softprops/action-gh-release@v1
+        if: ${{ success() }}
+        with:
+          tag_name: ${{env.VERSION }}
+          files: |
+            oke/*
+          prerelease: false
+          generate_release_notes: true
+          
