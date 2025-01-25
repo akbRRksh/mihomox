@@ -59,7 +59,7 @@ jobs:
           if [ "${{ steps.latest_tag.outputs.tag }}" != "no-tag" ]; then
             VERSION="${{ steps.latest_tag.outputs.tag }}-$HASH_COMMIT-$BRANCH_NAME"
           else
-            VERSION="alpha--$HASH_COMMIT-$BRANCH_NAME"
+            VERSION="$BRANNCH_NAME$HASH_COMMIT"
           fi
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           
