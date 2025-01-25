@@ -17,14 +17,14 @@ jobs:
       - name: Checkout Source Code
         uses: actions/checkout@v4
         with:
-          repository: akbRRksh/mihomox
+          repository: MetaCubeX/mihomo
           ref: Alpha
 
       - name: Get Latest Tag
         id: latest_tag
         uses: pozetroninc/github-action-get-latest-release@master
         with:
-          repository: akbRRksh/mihomox
+          repository: MetaCubeX/mihomo
           excludes: draft
 
       - name: Set up Go
@@ -145,7 +145,7 @@ jobs:
         with:
           tag_name: ${{env.VERSION }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GIT_TOKEN }}
             
       - name: Display structure of downloaded files
         run: ls -R
