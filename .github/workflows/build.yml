@@ -17,8 +17,8 @@ jobs:
       - name: Checkout Source Code
         uses: actions/checkout@v4
         with:
-          repository: akbRRksh/mihomox
-          ref: Alpha
+          repository: MetaCubeX/mihomo
+          ref: Meta
 
       - name: Get Latest Tag
         id: latest_tag
