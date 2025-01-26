@@ -56,7 +56,7 @@ jobs:
           echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
           
           # Membuat versi sesuai dengan format: Branch-Commit
-          VERSION="$BRANCH_NAME-$HASH_COMMIT"
+          VERSION="${{ steps.latest_tag.outputs.release }}-$HASH_COMMIT"
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           BUILDTAG="-extldflags --static"
           echo "TAGS=with_gvisor,with_low_memory" >> $GITHUB_ENV
