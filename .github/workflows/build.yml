@@ -9,8 +9,6 @@ jobs:
       matrix:
         jobs:
           - { goos: linux, goarch: arm64, output: arm64 }
-          - { goos: linux, goarch: arm, goarm: '7', output: armv7 }
-          - { goos: android, goarch: arm, ndk: armv7a-linux-androideabi34, output: armv7 }
           - { goos: android, goarch: arm64, ndk: aarch64-linux-android34, output: arm64-v8 }
               
     steps:
@@ -24,14 +22,14 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: MetaCubeX/mihomo
-          ref: Meta
+          ref: Alpha
 
       - name: Get Latest Tag
         id: latest_tag
         uses: pozetroninc/github-action-get-latest-release@master
         with:
           repository: MetaCubeX/mihomo
-          excludes: prerelease
+          excludes: prerelease, draft
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -68,12 +66,17 @@ jobs:
       - name: Debug NDK Setup
         run: |
           echo "NDK Path: ${{ steps.setup-ndk.outputs.ndk-path }}"
-          ls -l ${{ steps.setup-ndk.outputs.ndk-path }}
+          ls -l ${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/
 
       - name: Set NDK Path
         run: |
           echo "CC=${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/${{ matrix.jobs.ndk }}-clang" >> $GITHUB_ENV
           echo "CGO_ENABLED=1" >> $GITHUB_ENV
+          
+      - name: Debug Compiler Path
+        run: |
+          echo "Compiler Path: ${{ env.CC }}"
+          ls -l ${{ env.CC }}
 
       - name: Debug Variables
         run: |
@@ -94,6 +97,7 @@ jobs:
           TAGS: ${{ env.TAGS }}
           LDFLAGS: ${{ env.LDFLAGS }}
           C_COMPILER: ${{ env.C_COMPILER }}
+          CC: ${{ env.CC }}
         run: |
           CGO_ENABLED=1 CC=${{ env.C_COMPILER }}
           GOARCH=${{ matrix.jobs.goarch }}
