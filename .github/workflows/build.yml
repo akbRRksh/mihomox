@@ -49,14 +49,14 @@ jobs:
           # Mendapatkan commit hash
           HASH_COMMIT=$(git rev-parse --short HEAD)
           echo "HASH_COMMIT=$HASH_COMMIT" >> $GITHUB_ENV
-          echo "URL_COMMIT=https://github.com/${{ github.repository }}/commit/$HASH_COMMIT" >> $GITHUB_ENV
+          echo "URL_COMMIT=https://github.com/metacubex/mihomo/commit/$HASH_COMMIT" >> $GITHUB_ENV
           
           # Mendapatkan nama branch
           BRANCH_NAME=${GITHUB_REF_NAME}
           echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
           
           # Membuat versi sesuai dengan format: Branch-Commit
-          VERSION="${{ steps.latest_tag.outputs.release }}-$HASH_COMMIT"
+          VERSION="$BRANCH_NAME-${{ steps.latest_tag.outputs.release }}-$HASH_COMMIT"
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           BUILDTAG="-extldflags --static"
           echo "TAGS=with_gvisor,with_low_memory" >> $GITHUB_ENV
