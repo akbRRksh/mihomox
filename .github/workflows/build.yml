@@ -28,17 +28,10 @@ jobs:
           excludes: prerelease
     
       - name: Set up Go
-        if: ${{ matrix.jobs.goversion == '' && matrix.jobs.abi != '1' }}
         uses: actions/setup-go@v5
         with:
           go-version: '1.23'
-    
-      - name: Set up Go
-        if: ${{ matrix.jobs.goversion != '' && matrix.jobs.abi != '1' }}
-        uses: actions/setup-go@v5
-        with:
-          go-version: ${{ matrix.jobs.goversion }}
-    
+
       - name: Set Time and Build Variables
         run: |
           sudo timedatectl set-timezone "Asia/Jakarta"
@@ -46,35 +39,19 @@ jobs:
           BUILDTIME=$(date)
           echo "BUILDTIME=$BUILDTIME" >> $GITHUB_ENV
           
-          # Mendapatkan commit hash
           HASH_COMMIT=$(git rev-parse --short HEAD)
           echo "HASH_COMMIT=$HASH_COMMIT" >> $GITHUB_ENV
           echo "URL_COMMIT=https://github.com/metacubex/mihomo/commit/$HASH_COMMIT" >> $GITHUB_ENV
           
-          # Mendapatkan nama branch
           BRANCH_NAME=${GITHUB_REF_NAME}
           echo "BRANCH_NAME=$BRANCH_NAME" >> $GITHUB_ENV
           
-          # Membuat versi sesuai dengan format: Branch-Commit
           VERSION="${{ steps.latest_tag.outputs.release }}-$HASH_COMMIT"
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "TAGS=with_gvisor,with_low_memory" >> $GITHUB_ENV
           BUILDTAG="-extldflags --static"
           echo "GOTOOLCHAIN=local" >> $GITHUB_ENV
           echo "LDFLAGS=$BUILDTAG -X 'github.com/metacubex/mihomo/constant.Version=$VERSION' -X 'github.com/metacubex/mihomo/constant.BuildTime=$BUILDTIME' -w -s -buildid=" >> $GITHUB_ENV
-          echo "C_COMPILER=${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/${{ matrix.jobs.ndk }}-clang" >> $GITHUB_ENV
-
-
-
-
-      # Caching NDK
-      - name: Cache NDK
-        uses: actions/cache@v3
-        with:
-          path: ${{ runner.tool_cache }}/android-ndk
-          key: android-ndk-${{ matrix.jobs.goos }}-${{ matrix.jobs.ndk }}
-          restore-keys: |
-            android-ndk-${{ matrix.jobs.goos }}-
 
       - name: Setup NDK
         if: ${{ matrix.jobs.goos == 'android' }}
@@ -83,13 +60,11 @@ jobs:
         with:
           ndk-version: r28-beta1
 
-      - name: Set NDK path
+      - name: Set NDK Path
         if: ${{ matrix.jobs.goos == 'android' }}
         run: |
           echo "CC=${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/${{ matrix.jobs.ndk }}-clang" >> $GITHUB_ENV
           echo "CGO_ENABLED=1" >> $GITHUB_ENV
-          echo "BUILDTAG=" >> $GITHUB_ENV
-          echo "LDFLAGS=$BUILDTAG -X 'github.com/metacubex/mihomo/constant.Version=$VERSION' -X 'github.com/metacubex/mihomo/constant.BuildTime=$BUILDTIME' -w -s -buildid=" >> $GITHUB_ENV
 
       - name: Debug Variables
         run: |
@@ -98,6 +73,7 @@ jobs:
           echo "LDFLAGS: ${{ env.LDFLAGS }}"
           echo "C_COMPILER: ${{ env.C_COMPILER }}"
           echo "NDK Path: ${{ steps.setup-ndk.outputs.ndk-path }}"
+          ls -l ${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/
 
       - name: Build Application
         env:
@@ -108,15 +84,16 @@ jobs:
           VERSION: ${{ env.VERSION }}
           TAGS: ${{ env.TAGS }}
           LDFLAGS: ${{ env.LDFLAGS }}
+          C_COMPILER: ${{ env.C_COMPILER }}
         run: |
           CGO_ENABLED=1 CC=${{ env.C_COMPILER }} \
           GOARCH=${{ matrix.jobs.goarch }} \
           GOOS=${{ matrix.jobs.goos }} go build \
           -tags "${{ env.TAGS }}" -trimpath \
-          -ldflags "${{ env.LDFLAGS }}" 
+          -ldflags "${{ env.LDFLAGS }}" \
+          -o mihomo
           gzip -c mihomo > mihomo-${GOOS}-${GOOUTPUT}-${VERSION}.gz
           rm mihomo
-
 
       - name: Save Version
         run: |
@@ -131,6 +108,7 @@ jobs:
             mihomo*.gz
             version.txt
           if-no-files-found: warn
+
 
   upload:
     permissions: write-all
