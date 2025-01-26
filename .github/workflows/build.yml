@@ -113,8 +113,9 @@ jobs:
           GOARCH=${{ matrix.jobs.goarch }} \
           GOOS=${{ matrix.jobs.goos }} go build \
           -tags "${{ env.TAGS }}" -trimpath \
-          -ldflags "${{ env.LDFLAGS }}" \
+          -ldflags "${{ env.LDFLAGS }}" 
           gzip -c mihomo > mihomo-${GOOS}-${GOOUTPUT}-${VERSION}.gz
+          rm mihomo
 
 
       - name: Save Version
