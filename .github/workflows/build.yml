@@ -96,6 +96,8 @@ jobs:
           echo "VERSION: ${{ env.VERSION }}"
           echo "TAGS: ${{ env.TAGS }}"
           echo "LDFLAGS: ${{ env.LDFLAGS }}"
+          echo "C_COMPILER: ${{ env.C_COMPILER }}"
+          echo "NDK Path: ${{ steps.setup-ndk.outputs.ndk-path }}"
 
       - name: Build Application
         env:
@@ -108,12 +110,12 @@ jobs:
           LDFLAGS: ${{ env.LDFLAGS }}
         run: |
           CGO_ENABLED=1 CC=${{ env.C_COMPILER }} \
-          GOARCH=${{ matrix.targer.arch }} \
-          GOOS=android go build
+          GOARCH=${{ matrix.jobs.goarch }} \
+          GOOS=${{ matrix.jobs.goos }} go build \
           -tags "${{ env.TAGS }}" -trimpath \
           -ldflags "${{ env.LDFLAGS }}" \
           gzip -c mihomo > mihomo-${GOOS}-${GOOUTPUT}-${VERSION}.gz
-          rm mihomo
+
 
       - name: Save Version
         run: |
