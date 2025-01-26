@@ -95,12 +95,10 @@ jobs:
           LDFLAGS: ${{ env.LDFLAGS }}
           C_COMPILER: ${{ env.C_COMPILER }}
         run: |
-          CGO_ENABLED=1 CC=${{ env.C_COMPILER }} \
-          GOARCH=${{ matrix.jobs.goarch }} \
-          GOOS=${{ matrix.jobs.goos }} go build \
-          -tags "${{ env.TAGS }}" -trimpath \
-          -ldflags "${{ env.LDFLAGS }}" \
-          -o mihomo
+          CGO_ENABLED=1 CC=${{ env.C_COMPILER }}
+          GOARCH=${{ matrix.jobs.goarch }}
+          GOOS=${{ matrix.jobs.goos }}
+          go build -tags "${{ env.TAGS }}" -trimpath -ldflags "${{ env.LDFLAGS }}"
           gzip -c mihomo > mihomo-${GOOS}-${GOOUTPUT}-${VERSION}.gz
           rm mihomo
 
