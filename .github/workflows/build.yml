@@ -17,16 +17,15 @@ jobs:
       - name: Checkout Source Code
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref_name }}
-          
-      - name: Get Latest Tag from Current Branch
+          repository: MetaCubeX/mihomo
+          ref: Alpha
+
+      - name: Get Latest Tag
         id: latest_tag
-        run: |
-          TAG=$(git tag --points-at HEAD | sort -V | tail -n 1)
-          if [ -z "$TAG" ]; then
-            TAG="no-tag"
-          fi
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
+        uses: pozetroninc/github-action-get-latest-release@master
+        with:
+          repository: MetaCubeX/mihomo
+          excludes: prerelease, draft
     
       - name: Set up Go
         if: ${{ matrix.jobs.goversion == '' && matrix.jobs.abi != '1' }}
